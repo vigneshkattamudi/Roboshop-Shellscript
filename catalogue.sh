@@ -34,51 +34,48 @@ VALIDATE(){
 }
 
 dnf module disable nodejs -y &>>$LOG_FILE
-VALIDATE $? "disabling nodejs"
+VALIDATE $? "Disabling default nodejs"
 
 dnf module enable nodejs:20 -y &>>$LOG_FILE
-VALIDATE $? "Enabling nodejs"
+VALIDATE $? "Enabling nodejs:20"
 
 dnf install nodejs -y &>>$LOG_FILE
-VALIDATE $? "installing nodejs"
+VALIDATE $? "Installing nodejs:20"
 
 id roboshop
-if [ $? != 0 ]
-then 
+if [ $? -ne 0 ]
+then
     useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
-    VALIDATE $? "Adding Roboshop User"
+    VALIDATE $? "Creating roboshop system user"
 else
-    echo -e  "roboshop already created... $Y SKIPPING $N"
+    echo -e "System user roboshop already created ... $Y SKIPPING $N"
 fi
 
-mkdir -p /app &>>$LOG_FILE
-VALIDATE $? "Creating App directory" 
+mkdir -p /app 
+VALIDATE $? "Creating app directory"
 
 curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip &>>$LOG_FILE
-VALIDATE $? "downloading roboshhop component"
+VALIDATE $? "Downloading Catalogue"
 
 rm -rf /app/*
 cd /app 
 unzip /tmp/catalogue.zip &>>$LOG_FILE
 VALIDATE $? "unzipping catalogue"
 
-cd /app 
 npm install &>>$LOG_FILE
-VALIDATE $? "installing Dependencies"
+VALIDATE $? "Installing Dependencies"
 
-cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service &>>$LOG_FILE
-VALIDATE $? "Copying Catalogue" 
+cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service
+VALIDATE $? "Copying catalogue service"
 
 systemctl daemon-reload &>>$LOG_FILE
-systemctl enable catalogue &>>$LOG_FILE
+systemctl enable catalogue  &>>$LOG_FILE
 systemctl start catalogue
-VALIDATE $? "starting catalogue"
+VALIDATE $? "Starting Catalogue"
 
-cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo &>>$LOG_FILE
-VALIDATE $? "Copying mongodb repo" 
-
+cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo 
 dnf install mongodb-mongosh -y &>>$LOG_FILE
-VALIDATE $? "Installing mongodb client" 
+VALIDATE $? "Installing MongoDB Client"
 
 STATUS=$(mongosh --host mongodb.daws84s.site --eval 'db.getMongo().getDBNames().indexOf("catalogue")')
 if [ $STATUS -lt 0 ]
