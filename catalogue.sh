@@ -42,28 +42,34 @@ VALIDATE $? "Enabling nodejs"
 dnf install nodejs -y &>>$LOG_FILE
 VALIDATE $? "installing nodejs"
 
-useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
-VALIDATE $? "Adding Roboshop User"
+id roboshop
+if [ $? != 0 ]
+then 
+    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>>$LOG_FILE
+    VALIDATE $? "Adding Roboshop User"
+else
+    echo -e  "roboshop already created... $Y SKIPPING $N"
+fi
 
 mkdir /app &>>$LOG_FILE
 VALIDATE $? "Creating App directory" 
 
-curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip 
+curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip &>>$LOG_FILE
 VALIDATE $? "downloading roboshhop component"
 
 cd /app 
-unzip /tmp/catalogue.zip
+unzip /tmp/catalogue.zip &>>$LOG_FILE
 VALIDATE $? "unzipping catalogue"
 
 cd /app 
-npm install 
+npm install &>>$LOG_FILE
 VALIDATE $? "installing Dependencies"
 
 cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service &>>$LOG_FILE
 VALIDATE $? "Copying Catalogue" 
 
-systemctl daemon-reload
-systemctl enable catalogue 
+systemctl daemon-reload &>>$LOG_FILE
+systemctl enable catalogue &>>$LOG_FILE
 systemctl start catalogue
 VALIDATE $? "starting catalogue"
 
@@ -73,5 +79,5 @@ VALIDATE $? "Copying mongodb repo"
 dnf install mongodb-mongosh -y &>>$LOG_FILE
 VALIDATE $? "Installing mongodb client" 
 
-mongosh --host mongodb.dsops84.space </app/db/master-data.js
+mongosh --host mongodb.dsops84.space </app/db/master-data.js &>>$LOG_FILE
 VALIDATE $? "connected to mongodb"
